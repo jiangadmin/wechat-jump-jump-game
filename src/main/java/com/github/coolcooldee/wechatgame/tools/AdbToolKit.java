@@ -16,12 +16,10 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * 封装ADB功能，通过执行ADB命令行实现
  * 需要先下载 Android Debug Bridge 到本地，参考地址：https://developer.android.com/studio/command-line/adb.html#forwardports
- *
  */
 public abstract class AdbToolKit {
 
@@ -31,13 +29,20 @@ public abstract class AdbToolKit {
     final static String SCRIPT_SCREEN_CAP_METHOD1 = "${adbpath} exec-out screencap -p > ${imagename}";
     final static String SCRIPT_SCREEN_CAP_METHOD2_1 = "${adbpath} shell screencap -p /sdcard/${imagename}";
     final static String SCRIPT_SCREEN_CAP_METHOD2_2 = "${adbpath} pull /sdcard/${imagename} > ./${imagename}";
-    final static String SCRIPT_SCREEN_TOUCH = "${adbpath} shell input swipe ${x1} ${y1} ${x2} ${y2} ${time}";
+
+    /**
+     * %1$s adb 地址
+     * %2$s 按压时长
+     */
+    final static String INPUT_SWIPE = "%1$s shell input swipe 200 200 200 200 %2$s";
+
     final static String SCRIPT_DEVICES = "${adbpath} devices";
     static boolean isSetting = false;
 
-    public static boolean init(){
+    public static boolean init() {
+
         LogToolKit.println("正在启动应用, 请稍等...");
-        if(!isADBToolOk()){
+        if (!isADBToolOk()) {
             LogToolKit.println("应用启动失败.");
             return false;
         }
@@ -52,14 +57,14 @@ public abstract class AdbToolKit {
         return true;
     }
 
-    private static String[] genBaseSysParams(){
+    private static String[] genBaseSysParams() {
         String[] args = new String[3];
         String os = System.getProperty("os.name");
         if (os.toLowerCase().trim().startsWith("win")) {
             //LogToolKit.println("系统检测 win.");
             args[0] = "cmd.exe";
             args[1] = "/c";
-        }else{
+        } else {
             //LogToolKit.println("系统检测 Linux / Mac os.");
             args[0] = "bash";
             args[1] = "-c";
@@ -72,43 +77,44 @@ public abstract class AdbToolKit {
      */
     private static boolean isSettingScreencapMethod = false;
     private static int screencapMethod = 0;
+
     public static void screencap() {
         String[] args = genBaseSysParams();
         try {
-            if(!isSettingScreencapMethod){
+            if (!isSettingScreencapMethod) {
                 LogToolKit.println("尝试使用方式一截图。");
                 args[2] = SCRIPT_SCREEN_CAP_METHOD1.replace("${adbpath}", adbPath).replace("${imagename}", JumpService.getScreencapPath());
                 Runtime.getRuntime().exec(args).waitFor();
-                if(isImageOk()){
+                if (isImageOk()) {
                     screencapMethod = 1;
                     isSettingScreencapMethod = true;
                     LogToolKit.println("成功设置截图方式一。");
-                }else{
+                } else {
                     LogToolKit.println("警告：截图方式一失败。");
                     LogToolKit.println("尝试使用方式二截图。");
-                    String imageName = "jumpgame_"+System.currentTimeMillis()+".png";
+                    String imageName = "jumpgame_" + System.currentTimeMillis() + ".png";
                     args[2] = SCRIPT_SCREEN_CAP_METHOD2_1.replace("${adbpath}", adbPath).replace("${imagename}", imageName);
                     Runtime.getRuntime().exec(args).waitFor();
                     Thread.sleep(1000);
                     args[2] = SCRIPT_SCREEN_CAP_METHOD2_2.replace("${adbpath}", adbPath).replace("${imagename}", imageName);
                     Runtime.getRuntime().exec(args).waitFor();
-                    if(isImageOk()){
+                    if (isImageOk()) {
                         screencapMethod = 2;
                         isSettingScreencapMethod = true;
                         LogToolKit.println("成功设置截图方式二。");
-                    }else{
+                    } else {
                         LogToolKit.println("警告：截图方式二失败。");
                     }
                 }
-            }else{
-                if(screencapMethod==2){
-                    String imageName = "jumpgame_"+System.currentTimeMillis()+".png";
+            } else {
+                if (screencapMethod == 2) {
+                    String imageName = "jumpgame_" + System.currentTimeMillis() + ".png";
                     args[2] = SCRIPT_SCREEN_CAP_METHOD2_1.replace("${adbpath}", adbPath).replace("${imagename}", imageName);
                     Runtime.getRuntime().exec(args).waitFor();
                     Thread.sleep(1000);
                     args[2] = SCRIPT_SCREEN_CAP_METHOD2_2.replace("${adbpath}", adbPath).replace("${imagename}", imageName);
                     Runtime.getRuntime().exec(args).waitFor();
-                }else{
+                } else {
                     args[2] = SCRIPT_SCREEN_CAP_METHOD1.replace("${adbpath}", adbPath).replace("${imagename}", JumpService.getScreencapPath());
                     Runtime.getRuntime().exec(args).waitFor();
                 }
@@ -123,21 +129,20 @@ public abstract class AdbToolKit {
 
     /**
      * ADB手机屏幕长按，长按时间
-     * @param time  长按时间，精确到毫秒
-     * Andorid 版本需要高于 4.4
+     *
+     * @param time 长按时间，精确到毫秒
+     *             Andorid 版本需要高于 4.4
      */
-    public static void screentouch(double time) {
-        String times = (int)time + "";
-        String x1 = ((new Random()).nextInt(100) + (new Random()).nextInt(100) + 1) + "";
-        String y1 = ((new Random()).nextInt(100) + (new Random()).nextInt(100) + 1) + "";
-        String x2 = ((new Random()).nextInt(100) + (new Random()).nextInt(100) + 1) + "";
-        String y2 = ((new Random()).nextInt(100) + (new Random()).nextInt(100) + 1) + "";
 
-        String args = SCRIPT_SCREEN_TOUCH.replace("${adbpath}", adbPath).replace("${time}", times)
-                        .replace("${x1}", x1).replace("${y1}", y1).replace("${x2}", x2).replace("${y2}", y2);
+    public static void screentouch(double time) {
+        String times = (int) time + "";
+
+        //输入地址 和时间
+        String swipe = String.format(INPUT_SWIPE, adbPath, times);
+
         try {
-            Runtime.getRuntime().exec(args).waitFor();
-            LogToolKit.println("长按"+time+"毫秒");
+            Runtime.getRuntime().exec(swipe).waitFor();
+            LogToolKit.println("长按" + time + "毫秒");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -147,22 +152,22 @@ public abstract class AdbToolKit {
 
     /**
      * 检测ADB工具以及 Android 设备
-     *
+     * <p>
      * 返回值说明：
-     *  1：成功；
+     * 1：成功；
      * -1：ADB工具找不到；
      * -2：设备连接异常
      *
      * @param path
      * @return
      */
-    public static int checkAdbAndDevice(String path){
-        if(path==null || "".equals(path)){
+    public static int checkAdbAndDevice(String path) {
+        if (path.length() < 1) {
             LogToolKit.println("ADB工具路径未设置.");
             return -1;
         }
         String[] args = genBaseSysParams();
-        args[2] =SCRIPT_DEVICES.replace("${adbpath}", path);
+        args[2] = SCRIPT_DEVICES.replace("${adbpath}", path);
 
         int stauts = 0;
 
@@ -177,7 +182,7 @@ public abstract class AdbToolKit {
                 lineList.add(line);
                 LogToolKit.println(line);
             }
-            if(!lineList.isEmpty()) {
+            if (!lineList.isEmpty()) {
                 if (lineList.get(0).indexOf("List of devices attached") > -1) {
                     if (lineList.size() > 1 && lineList.get(1).length() > 0) {
                         stauts = 1;
@@ -190,7 +195,7 @@ public abstract class AdbToolKit {
                     stauts = -1;
                     LogToolKit.println("ADB工具检测异常，未找到.");
                 }
-            }else{
+            } else {
                 stauts = -1;
                 LogToolKit.println("ADB工具检测异常，未找到.");
             }
@@ -211,35 +216,35 @@ public abstract class AdbToolKit {
         BufferedImage image = ImageIO.read(new File(JumpService.getScreencapPath()));
         if (image == null) {
             return false;
-        }else{
+        } else {
             return true;
         }
     }
 
 
-    public static boolean isADBToolOk(){
+    public static boolean isADBToolOk() {
         String tempADBPath = PropertiesToolkit.getSettingADBPath();
         int checkR = AdbToolKit.checkAdbAndDevice(tempADBPath);
-        if(checkR==1) {
+        if (checkR == 1) {
             setAdbPath(tempADBPath);
             LogToolKit.println("ADB工具地址设置成功：" + adbPath);
             return true;
-        }else if(checkR == -1){
-            if(isSetting) {
+        } else if (checkR == -1) {
+            if (isSetting) {
                 JOptionPane.showMessageDialog(null, "未找到ADB工具，请重新配置ADB工具地址！", "提示", JOptionPane.ERROR_MESSAGE);
             }
             isSetting = true;
-            Object adbpathObject = JOptionPane.showInputDialog(null,"请输入ADB工具地址：\n","系统参数设置",JOptionPane.PLAIN_MESSAGE,null,null,"例如：/Users/dee/Downloads/platform-tools/adb");
-            if(adbpathObject!=null){
+            Object adbpathObject = JOptionPane.showInputDialog(null, "请输入ADB工具地址：\n", "系统参数设置", JOptionPane.PLAIN_MESSAGE, null, null, "例如：/Users/dee/Downloads/platform-tools/adb");
+            if (adbpathObject != null) {
                 tempADBPath = adbpathObject.toString();
                 PropertiesToolkit.setSettingADBPath(tempADBPath);
                 isADBToolOk();
                 return true;
-            }else{
+            } else {
                 System.exit(0);
             }
-        }else if(checkR == -2){
-            JOptionPane.showMessageDialog(null, "未找接入的 Android 设备，请检测设备连接情况，确认后再点击确认！", "提示",JOptionPane.ERROR_MESSAGE);
+        } else if (checkR == -2) {
+            JOptionPane.showMessageDialog(null, "未找接入的 Android 设备，请检测设备连接情况，确认后再点击确认！", "提示", JOptionPane.ERROR_MESSAGE);
             isADBToolOk();
             return true;
         }
@@ -250,13 +255,13 @@ public abstract class AdbToolKit {
     }
 
 
-
     public static void setAdbPath(String adbPath) {
         AdbToolKit.adbPath = adbPath;
     }
 
     public static void main(String[] args) throws IOException {
-        System.out.println(isImageOk());;
+        System.out.println(isImageOk());
+        ;
     }
 
 }

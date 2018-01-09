@@ -32,7 +32,7 @@ public abstract class WechatGameUI {
     static int fx = 0;
     static int fy = 0;
 
-    static JFrame mainFrame ;
+    static JFrame mainFrame;
     static JPanel corePanel;
     static JPanel settingPanel;
     static JLabel beginLable = new JLabel();
@@ -56,12 +56,20 @@ public abstract class WechatGameUI {
         refreshCorePanelUI();
     }
 
-    private static void initWidthHeight(){
+    private static void initWidthHeight() {
         //获取截图大小，并初始化窗体大小和位置
-        int screenWidth = (int)Toolkit.getDefaultToolkit().getScreenSize().getWidth();
-        int screenheight = (int)Toolkit.getDefaultToolkit().getScreenSize().getHeight();
-        fx = (screenWidth-fwidth)/2;
-        fy = (screenheight-fheight)/2;
+
+        //电脑屏幕宽度
+        int screenWidth = (int) Toolkit.getDefaultToolkit().getScreenSize().getWidth();
+        //电脑屏幕高度
+        int screenheight = (int) Toolkit.getDefaultToolkit().getScreenSize().getHeight();
+
+        LogToolKit.println("电脑屏幕宽度：" + screenWidth);
+        LogToolKit.println("电脑屏幕高度：" + screenheight);
+
+        fx = (screenWidth - fwidth) / 2;
+        fy = (screenheight - fheight) / 2;
+
         Image image = getImage4WidthAndHeight();
         if (image != null) {
             int tempWidth = image.getWidth(null);
@@ -78,14 +86,14 @@ public abstract class WechatGameUI {
                 JumpService.setDistance2timeRatio(distance2timeRatio);
             }
             Double tempUIRate = JumpService.getUIRatioByResolution(resulotionStr.toString());
-            if(tempUIRate!=null){
+            if (tempUIRate != null) {
                 uirate = tempUIRate;
             }
             fwidth = (int) (tempWidth * uirate);
-            fheight = (int) ((tempHeight+200) * uirate);
+            fheight = (int) ((tempHeight + 200) * uirate);
             width = (int) (tempWidth * uirate);
             height = (int) (tempHeight * uirate);
-        }else{
+        } else {
             LogToolKit.println("未找到截图，请确认ADB是否连接正常。");
         }
     }
@@ -94,20 +102,14 @@ public abstract class WechatGameUI {
         AdbToolKit.screencap();
         mainFrame.getComponent(0).validate();
         mainFrame.getComponent(0).repaint();
-        beginLable.setText("起跳点：空");
-        endLable.setText("目标点：空");
+        beginLable.setText("起点：未点选");
+        endLable.setText("落点：未点选");
         LogToolKit.println("重新绘制 UI 成功, 等待操作 ...");
-    }
-
-    class MyLable extends JLabel {
-        public MyLable() {
-
-        }
     }
 
     static class RefreshButton extends JButton {
         public RefreshButton() {
-            this.setText("刷新UI");
+            this.setText("刷新");
             this.setVisible(true);
             this.addMouseListener(new MouseListener() {
                 public void mouseClicked(MouseEvent e) {
@@ -133,7 +135,7 @@ public abstract class WechatGameUI {
         }
     }
 
-    static  class CoreJPanel extends JPanel {
+    static class CoreJPanel extends JPanel {
 
         public CoreJPanel() {
             this.setBorder(BorderFactory.createTitledBorder("操作"));
@@ -156,10 +158,10 @@ public abstract class WechatGameUI {
                     //左键
                     if (MouseEvent.BUTTON1 == e.getButton()) {
                         if (JumpService.getBeginPoint().getX() == 0 && JumpService.getBeginPoint().getY() == 0) {
-                            beginLable.setText("起跳点：(" + e.getPoint().getX() + "," + e.getPoint().getY() + ")");
+                            beginLable.setText("起点[" + (int) e.getPoint().getX() + "/" + (int) e.getPoint().getY() + "]");
                             JumpService.setBeginPoint(e.getPoint());
                         } else {
-                            endLable.setText("目标点：(" + e.getPoint().getX() + "," + e.getPoint().getY() + ")");
+                            endLable.setText("落点[" + (int) e.getPoint().getX() + "/" + (int) e.getPoint().getY() + "]");
                             JumpService.setEndPoint(e.getPoint());
                             new Thread(new Runnable() {
                                 public void run() {
